@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package line_provider;
+
+option go_package = "./line_provider";
+
+service LineProvider {
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse) {}
+  rpc CheckIfEventExists(CheckIfEventExistsRequest) returns (EventResponse) {}
+}
+
+
+// GetEvents()
+
+message GetEventsRequest {
+}
+
+message GetEventsResponse {
+  repeated EventResponse events = 1;
+}
+
+message EventResponse {
+  string id = 1;
+  float coefficient = 2;
+  string status = 3;
+  string deadline = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+// CheckIfEventExists()
+
+message CheckIfEventExistsRequest{
+  string event_id = 1;
+}

@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package bet;
+
+option go_package = "./bet";
+
+service Bet {
+  rpc UpdateBets(UpdateBetsRequest) returns (UpdateBetsResponse) {}
+}
+
+
+// UpdateBets()
+
+message UpdateBetsRequest {
+  string event_id = 1;
+  string status = 2;
+}
+
+message UpdateBetsResponse {
+}

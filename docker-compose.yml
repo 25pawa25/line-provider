@@ -1,0 +1,85 @@
+version: "3.7"
+
+networks:
+  test_default:
+    external: true
+
+services:
+  line_provider_postgres:
+    networks:
+      - test_default
+    container_name: line_provider_postgres
+    build:
+      context: docker/postgres
+      dockerfile: Dockerfile
+      target: server
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_PATH}/postgres:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    expose:
+      - 5432
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    environment:
+      - LC_ALL=C.UTF-8
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+
+  line_provider:
+    image: line_provider-image
+    build:
+      context: .
+      dockerfile: docker/line_provider/Dockerfile
+      target: server
+    networks:
+      - test_default
+    container_name: line_provider
+    platform: ${PLATFORM}
+    env_file:
+      - src/.env
+    command: python main.py run_restapi
+    depends_on:
+      line_provider_postgres:
+        condition: service_healthy
+      line_provider_grpc:
+        condition: service_started
+    ports:
+      - "8002:8000"
+
+  line_provider_grpc:
+    networks:
+      - test_default
+    container_name: line_provider_grpc
+    platform: ${PLATFORM}
+    build:
+      context: .
+      dockerfile: docker/line_provider/Dockerfile
+      target: server
+    command: python main.py run_grpc
+    ports:
+      - "50053:50051"
+
+  lint:
+    image: python:3.9
+    container_name: lint
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      sh -c "
+      pip install flake8==6.0.0 isort==5.10.1 black==23.1.0 &&
+      flake8 src/ --config=.flake8 || true &&
+      isort src/ --settings-file=pyproject.toml --apply &&
+      black src/ --config=pyproject.toml
+      "
